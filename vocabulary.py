@@ -7,6 +7,7 @@ from talon import Context, Module, actions
 from talon.grammar import Phrase
 
 from .user_settings import append_to_csv, get_list_from_csv
+from .parse_phrase import parse_phrase
 
 mod = Module()
 ctx = Context()
@@ -64,7 +65,7 @@ def _get_spoken_form_from_test(
             )
         else:
             recording_path = ""
-        actions.user.parse_phrase(phrase, recording_path)
+        parse_phrase(phrase, recording_path)
     finally:
         actions.mode.restore()
         spoken_form = test_result
