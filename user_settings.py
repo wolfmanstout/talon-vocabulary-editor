@@ -17,23 +17,12 @@ SETTINGS_DIR = KNAUSJ_DIR / "settings"
 def get_list_from_csv(
     filename: str,
     headers: Tuple[str, str],
-    default: Dict[str, str] = {},
-    write_default=True,
 ):
     """Retrieves list from CSV"""
     path = SETTINGS_DIR / filename
     assert filename.endswith(".csv")
 
-    if write_default and not path.is_file():
-        with open(path, "w", encoding="utf-8", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(headers)
-            for key, value in default.items():
-                writer.writerow([key] if key == value else [value, key])
-
-    # Now read via resource to take advantage of talon's
-    # ability to reload this script for us when the resource changes
-    with resource.open(str(path), "r") as f:
+    with open(str(path), "r") as f:
         rows = list(csv.reader(f))
 
     # print(str(rows))
@@ -75,8 +64,8 @@ def append_to_csv(filename: str, rows: Dict[str, str]):
             pass
         needs_newline = line is not None and not line.endswith("\n")
     with open(path, "a", encoding="utf-8", newline="") as file:
-        if needs_newline:
-            file.write("\n")
         writer = csv.writer(file)
+        if needs_newline:
+            writer.writerow([])
         for key, value in rows.items():
             writer.writerow([key] if key == value else [value, key])

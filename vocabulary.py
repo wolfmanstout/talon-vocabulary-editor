@@ -1,13 +1,12 @@
-import logging
 import re
 import time
-from typing import Tuple, Union
+from typing import Union
 
 from talon import Context, Module, actions
 from talon.grammar import Phrase
 
-from .user_settings import append_to_csv, get_list_from_csv
 from .parse_phrase import parse_phrase
+from .user_settings import append_to_csv, get_list_from_csv
 
 mod = Module()
 ctx = Context()
@@ -80,8 +79,14 @@ def _create_vocabulary_entries(spoken_form, written_form, type):
     """
     entries = {spoken_form: written_form}
     if type == "name":
+        # Note that we use the spoken form without apostrophe because this seems to generally lead
+        # to better recognition on Conformer b108.
         entries[f"{spoken_form}s"] = f"{written_form}'s"
     elif type == "noun":
+        # Note that we simply append an "s", but we could use something more sophisticated like
+        # https://github.com/jpvanhal/inflection. The downside is that this is less predictable,
+        # and this feature is likely to be used in ways that are unlike common English prose, which
+        # is already included in the lexicon. For example, made up identifiers used in programming.
         entries[f"{spoken_form}s"] = f"{written_form}s"
     return entries
 
@@ -90,17 +95,17 @@ def _add_selection_to_csv(
     phrase: Union[Phrase, str],
     type: str,
     csv: str,
-    headers: Tuple[str, str],
+    csv_contents: dict[str, str],
+    skip_identical_replacement: bool,
     try_default_spoken_form: bool,
 ):
     written_form = actions.edit.selected_text().strip()
     is_acronym = re.fullmatch(r"[A-Z]+", written_form)
     default_spoken_form = " ".join(written_form) if is_acronym else written_form
-    phrases = get_list_from_csv(csv, headers=headers, write_default=False)
     if phrase:
         if try_default_spoken_form and isinstance(phrase, Phrase):
             spoken_form = _get_spoken_form_from_test(
-                default_spoken_form, phrase, phrases
+                default_spoken_form, phrase, csv_contents
             )
         else:
             spoken_form = " ".join(actions.dictate.parse_words(phrase))
@@ -108,30 +113,46 @@ def _add_selection_to_csv(
         spoken_form = default_spoken_form
     entries = _create_vocabulary_entries(spoken_form, written_form, type)
     new_entries = {}
+    added_some_phrases = False
     for spoken_form, written_form in entries.items():
-        if spoken_form in phrases:
-            logging.info(f'Spoken form "{spoken_form}" is already in {csv}')
+        if skip_identical_replacement and spoken_form == written_form:
+            actions.app.notify(f'Skipping identical replacement: "{spoken_form}"')
+        elif spoken_form in csv_contents:
+            actions.app.notify(f'Spoken form "{spoken_form}" is already in {csv}')
         else:
             new_entries[spoken_form] = written_form
+            added_some_phrases = True
     append_to_csv(csv, new_entries)
+    if added_some_phrases:
+        actions.app.notify(f"Added to {csv}: {new_entries}")
 
 
 @ctx.action_class("user")
 class OverwrittenActions:
     def add_selection_to_vocabulary(phrase: Union[Phrase, str] = "", type: str = ""):
+        vocabulary = get_list_from_csv(
+            "additional_words.csv",
+            headers=("Word(s)", "Spoken Form (If Different)"),
+        )
         _add_selection_to_csv(
             phrase,
             type,
             "additional_words.csv",
-            ("Word(s)", "Spoken Form (If Different)"),
+            vocabulary,
+            skip_identical_replacement=False,
             try_default_spoken_form=True,
         )
 
     def add_selection_to_words_to_replace(phrase: Phrase, type: str = ""):
+        phrases_to_replace = get_list_from_csv(
+            "words_to_replace.csv",
+            headers=("Replacement", "Original"),
+        )
         _add_selection_to_csv(
             phrase,
             type,
             "words_to_replace.csv",
-            ("Replacement", "Original"),
+            phrases_to_replace,
+            skip_identical_replacement=True,
             try_default_spoken_form=False,
         )
