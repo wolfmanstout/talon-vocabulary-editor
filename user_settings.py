@@ -3,6 +3,7 @@
 import csv
 from pathlib import Path
 from typing import Dict, Tuple
+
 from talon import resource
 
 # NOTE: This method requires this module to be at the same level as the top-level
