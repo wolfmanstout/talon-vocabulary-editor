@@ -26,7 +26,8 @@ def parse_phrase(phrase: Union[Phrase, str], recording_path: str = ""):
         return
     current_phrase = phrase_stack[-1]
     ts = current_phrase["_ts"]
-    start = phrase.words[0].start - ts
+    # Add padding for Conformer D. Value determined experimentally.
+    start = phrase.words[0].start - ts - 0.1
     end = phrase.words[-1].end - ts
     samples = current_phrase["samples"]
     pstart = int(start * 16_000)
