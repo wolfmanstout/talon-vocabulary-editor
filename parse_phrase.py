@@ -1,9 +1,9 @@
 # From https://github.com/AndreasArvidsson/andreas-talon/blob/3631f25d426a9fb7526c240cb0c9961ea90072c2/andreas/misc/rephrase.py
 from typing import Union
+
 from talon import speech_system
 from talon.grammar import Phrase
 from talon.lib import flac
-
 
 phrase_stack = []
 
@@ -27,7 +27,7 @@ def parse_phrase(phrase: Union[Phrase, str], recording_path: str = ""):
     current_phrase = phrase_stack[-1]
     ts = current_phrase["_ts"]
     # Add padding for Conformer D. Value determined experimentally.
-    start = phrase.words[0].start - ts - 0.1
+    start = phrase.words[0].start - ts - 0.3
     end = phrase.words[-1].end - ts
     samples = current_phrase["samples"]
     pstart = int(start * 16_000)
