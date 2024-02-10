@@ -2,7 +2,6 @@
 from typing import Union
 
 from talon import speech_system
-from talon.grammar import Phrase
 from talon.lib import flac
 
 phrase_stack = []
@@ -20,7 +19,7 @@ speech_system.register("pre:phrase", on_pre_phrase)
 speech_system.register("post:phrase", on_post_phrase)
 
 
-def parse_phrase(phrase: Union[Phrase, str], recording_path: str = ""):
+def parse_phrase(phrase: Union[list[str], str], recording_path: str = ""):
     """Rerun phrase"""
     if phrase == "":
         return
